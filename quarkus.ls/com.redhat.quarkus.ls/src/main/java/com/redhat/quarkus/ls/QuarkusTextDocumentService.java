@@ -11,6 +11,7 @@ package com.redhat.quarkus.ls;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.lsp4j.ClientCapabilities;
@@ -23,6 +24,8 @@ import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
 import org.eclipse.lsp4j.Hover;
+import org.eclipse.lsp4j.Location;
+import org.eclipse.lsp4j.LocationLink;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.TextDocumentClientCapabilities;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
@@ -30,7 +33,9 @@ import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.TextDocumentService;
 
+import com.redhat.quarkus.commons.ExtendedConfigDescriptionBuildItem;
 import com.redhat.quarkus.commons.QuarkusProjectInfoParams;
+import com.redhat.quarkus.ls.commons.BadLocationException;
 import com.redhat.quarkus.ls.commons.TextDocument;
 import com.redhat.quarkus.ls.commons.TextDocuments;
 import com.redhat.quarkus.services.QuarkusLanguageService;
@@ -123,6 +128,39 @@ public class QuarkusTextDocumentService implements TextDocumentService {
 			String uri = params.getTextDocument().getUri();
 			TextDocument document = documents.get(uri);
 			return getQuarkusLanguageService().doHover(document, params.getPosition(), projectInfo, sharedSettings.getHoverSettings());
+		});
+	}
+
+	@Override
+	public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(
+			TextDocumentPositionParams params) {
+		QuarkusProjectInfoParams projectInfoParams = createProjectInfoParams(params.getTextDocument(), null);
+		return projectInfoCache.getQuarkusProjectInfo(projectInfoParams).thenCompose(projectInfo -> {
+			if (!projectInfo.isQuarkusProject()) {
+				return null;
+			}
+
+			String uri = params.getTextDocument().getUri();
+			TextDocument document = documents.get(uri);
+			String line = null;
+			try {
+				line = document.lineText(params.getPosition().getLine());
+			} catch (BadLocationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			String propertyName = line.substring(0, line.indexOf('=')).trim();
+			Optional<ExtendedConfigDescriptionBuildItem> result = projectInfo.getProperties().stream()
+					.filter(p -> p.getPropertyName().equals(propertyName)).findFirst();
+			if (result.isPresent()) {
+				String source = result.get().getSource();
+				return quarkusLanguageServer.findDefinition(uri, source).thenApplyAsync(loc -> {
+					List<Location> locations = new ArrayList<>();
+					locations.add(loc);
+					return Either.forLeft(locations);
+				});
+			}
+			return null;
 		});
 	}
 

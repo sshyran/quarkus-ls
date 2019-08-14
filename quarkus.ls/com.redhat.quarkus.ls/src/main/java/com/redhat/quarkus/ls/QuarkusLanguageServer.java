@@ -9,8 +9,8 @@
 *******************************************************************************/
 package com.redhat.quarkus.ls;
 
-import static org.eclipse.lsp4j.jsonrpc.CompletableFutures.computeAsync;
 import static com.redhat.quarkus.utils.VersionHelper.getVersion;
+import static org.eclipse.lsp4j.jsonrpc.CompletableFutures.computeAsync;
 
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
@@ -19,6 +19,7 @@ import java.util.logging.Logger;
 import org.eclipse.lsp4j.CompletionOptions;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
+import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.services.LanguageClient;
@@ -125,4 +126,8 @@ public class QuarkusLanguageServer implements LanguageServer, ProcessLanguageSer
 		return languageClient.getQuarkusProjectInfo(params);
 	}
 
+	@Override
+	public CompletableFuture<Location> findDefinition(String projectName, String propertyName) {
+		return languageClient.findDefinition(projectName, propertyName);
+	}
 }

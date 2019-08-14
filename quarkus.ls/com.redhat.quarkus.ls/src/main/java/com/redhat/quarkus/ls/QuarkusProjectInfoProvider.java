@@ -11,6 +11,7 @@ package com.redhat.quarkus.ls;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 
 import com.redhat.quarkus.commons.QuarkusProjectInfo;
@@ -32,4 +33,7 @@ public interface QuarkusProjectInfoProvider {
 	 */
 	@JsonRequest("quarkus/projectInfo")
 	CompletableFuture<QuarkusProjectInfo> getQuarkusProjectInfo(QuarkusProjectInfoParams paramsURI);
+
+	@JsonRequest("quarkus/definition")
+	CompletableFuture<Location> findDefinition(String projectName, String propertyName);
 }
